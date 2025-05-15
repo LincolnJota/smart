@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model estoque {
+  id                    Int                     @id @default(autoincrement())
+  nome                  String                  @db.VarChar(255)
+  codigo_sku            String?                 @unique(map: "codigo_sku") @db.VarChar(50)
+  codigo_barras         String?                 @db.VarChar(100) // Novo campo para código de barras
+  categoriaId           Int? // Chave estrangeira para a tabela Categoria
+  categoria             Categoria?              @relation(fields: [categoriaId], references: [id])
+  quantidade            Int                     @default(0)
+  estoque_minimo        Int                     @default(0)
+  preco_venda           Decimal?                @db.Decimal(10, 2)
+  preco_custo           Decimal?                @db.Decimal(10, 2)
+  localizacao           String?                 @db.VarChar(255)
+  criado_em             DateTime?               @default(now()) @db.Timestamp(0)
+  atualizado_em         DateTime?               @default(now()) @db.Timestamp(0)
+  ativo                 Boolean                 @default(true)
+  produtos_fornecedores produtos_fornecedores[]
+
+  @@index([nome], map: "idx_nome")
+}
+
+model Categoria {
+  id        Int       @id @default(autoincrement())
+  nome      String    @db.VarChar(100)
+  descricao String?   @db.Text
+  cor       String?   @db.VarChar(20)
+  produtos  estoque[] // Relação com produtos
+
+  @@map("categorias")
+}
+
+model fornecedores {
+  id                    Int                     @id @default(autoincrement())
+  nome                  String                  @db.VarChar(255)
+  cnpj                  String?                 @unique(map: "cnpj") @db.VarChar(18)
+  telefone              String?                 @db.VarChar(20)
+  email                 String?                 @db.VarChar(255)
+  endereco              String?                 @db.Text
+  ativo                 Boolean                 @default(true)
+  criado_em             DateTime?               @default(now()) @db.Timestamp(0)
+  atualizado_em         DateTime?               @default(now()) @db.Timestamp(0)
+  produtos_fornecedores produtos_fornecedores[]
+}
+
+model produtos_fornecedores {
+  id                Int          @id @default(autoincrement())
+  produto_id        Int
+  fornecedor_id     Int
+  preco_custo       Decimal      @db.Decimal(10, 2)
+  prazo_entrega     Int
+  quantidade_minima Int          @default(1)
+  criado_em         DateTime?    @default(now()) @db.Timestamp(0)
+  atualizado_em     DateTime?    @default(now()) @db.Timestamp(0)
+  estoque           estoque      @relation(fields: [produto_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produtos_fornecedores_ibfk_1")
+  fornecedores      fornecedores @relation(fields: [fornecedor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produtos_fornecedores_ibfk_2")
+
+  @@index([fornecedor_id], map: "fornecedor_id")
+  @@index([produto_id], map: "produto_id")
+}
